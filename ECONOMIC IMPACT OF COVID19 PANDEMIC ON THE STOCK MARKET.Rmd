@@ -1,0 +1,121 @@
+---
+title: "ECONOMIC IMPACT OF THE COVID19 PANDEMIC"
+author: "Joseph"
+date: "11/3/2020"
+output: html_document
+---
+The COVID-19 pandemic has spread with alarming speed, infecting millions and bringing economic activity to a near-standstill as countries imposed tight restrictions on movement to halt the spread of the virus. As the health and human toll grows, the economic damage is already evident and represents the largest economic shock the world has experienced in decades.
+
+The outbreak of the pandemic all over the world has disturbed the political, social, economic, religious and financial structures of the whole world. World’s topmost economies such as the US, China, UK, Germany, France, Italy, Japan and many others were all at the verge of collapse. Besides, Stock Markets around the world have been pounded and oil prices have fallen off a cliff. 
+
+This analysis will focus on examining the extent to which the pandemic affect the stock market by analysing the trend in the stock price over the past decade pre-COVID-19, make a projection of what the stock price should look like during the pandemic based on historic trend, and check the variance between the predicted stock price and observed for the period of the pandemic. A TIME SERIES ANALYSIS AND FORCAST WILL BE REQUIRED FOR THIS.REF: https://ntguardian.wordpress.com/2017/03/27/introduction-stock-market-data-r-1/
+
+Loading Required Data
+
+```{r}
+sp <- read.csv(file= "/Users/user/Desktop/StockData/NSE All Share Historical Data.csv")
+head(sp)
+```
+Examining the structure of the data
+
+```{r}
+str(sp)
+```
+From the above data, we have 2,154 observations and 7 variables. For the purpose of our analysis we will be using the price and date variables.All the variables are represented as factors but we will convert them to their appropriate class and drop the irrelevant variables
+
+```{r}
+sp$Open <- NULL
+sp$High <- NULL
+sp$Low <- NULL
+sp$Vol. <- NULL
+sp$Change.. <- NULL
+sp$Price <- as.numeric(sp$Price)
+sp$ï..Date <- as.Date(sp$ï..Date, format = "%B %d,%y")
+head(sp)
+```
+Examining the class of our data
+
+```{r}
+class(sp)
+```
+For the purpose of our analysis, we need our data as a Time series object not data.Frame.
+
+Creating a Time series Object
+
+```{r}
+sp_ts <- ts(sp$Price, frequency = 365, start = 2012, end = 2021)
+```
+
+Visualizing our Time Series Data in base R plotting
+
+```{r}
+plot(sp_ts)
+```
+Since the data shows changing variance over time, the first thing we will do is stabilize the variance by applying log transformation using the log() function. Reference: https://financetrain.com/differencing-and-log-transformation/
+
+```{r}
+sp_linear <- log(sp_ts)
+plot(sp_linear)
+```
+Removing the linear Trend. Ref.  https://financetrain.com/differencing-and-log-transformation/
+
+```{r}
+sp_linear_diff <- diff(sp_linear)
+plot.ts(sp_linear_diff, main="Daily Stock Price (log)", ylab="Price", col=2)
+```
+MODELLING
+
+We will be using the ARIMA model for our analysis. ARIMA is an acronym for Auto Regression (AR), Integration (I) and Moving Average (MA), which is used to determine the value of "p", "d" and "q" respectively in the Arima model.
+
+Ref: https://people.duke.edu/~rnau/whatuse.htm, https://www.kaggle.com/pierpaolo28/stock-market-analysis-and-time-series-prediction
+
+Plotting the Aoto correlation(AR) function to determine the q value.
+
+```{r}
+acf(sp_linear_diff)
+
+```
+We get the q value by picking the value of the bar just before the inverted down. which is 1.
+
+Reference:
+https://towardsdatascience.com/significance-of-acf-and-pacf-plots-in-time-series-analysis-2fa11a5d10a8
+
+Plotting the partial auto correlation function to determine the p value
+
+```{r}
+pacf(sp_linear_diff)
+```
+the p value is 0, representing the value of the first just before the inverted one. 
+The d value is basically the number if differentiation performed on the data which is 1
+
+FITTING THE ARIMA MODEL
+
+https://otexts.com/fpp2/arima-r.html
+
+```{r}
+fit <- arima(log(sp_ts), c(0,1,1), seasonal = list(order=c(0,1,1), period = 1))
+#fit <- arima(sp_linear_diff, order= c(0, 0, 1))
+```
+Prediction
+
+```{r}
+pred <- predict(fit, n.ahead = 1*365)
+
+pred1 <- 2.718^pred$pred
+
+data1 <- head(pred1)
+```
+
+
+```{r}
+ts.plot(sp_ts, pred1, log= "y",lty = c(1,3))
+#plot.ts(pred1)
+```
+
+
+
+
+
+
+
+
